@@ -33,6 +33,21 @@ exports.router = function()
     //route not found: no route has matched and hence returned yet
     notFoundHandler.apply(this, arguments);
   };
+  
+  router.match = function(req) {
+      var path = parse(req.url).pathname, _routes = routes[req.method],
+          len = _routes.length;
+          
+      for(var i = 0; i < len; i += 1)
+      {
+          //say '/foo/bar/baz' matches '/foo/*/*'
+          var route = _routes[i], matches = route.exec(path);
+          if(matches) //then matches would be ['/foo/bar/baz','bar','baz']
+             return route;
+      }
+        
+      return null
+  }
 
   //dictionary of arrays of routes
   var routes = {};
@@ -51,6 +66,7 @@ exports.router = function()
         callback = ignoreCase;
         ignoreCase = router.ignoreCase;
       }
+      var originalRouteExp = route;
 
       if(route.constructor.name === 'RegExp') //instanceof fails between modules
         route = new RegExp(route); //if route is already a RegExp, just clone it
@@ -59,6 +75,8 @@ exports.router = function()
           String(route).replace(specialChars, '\\$&').replace(/\*/g, '([^/?#]*)') // replace all occurences 
         + '(?:[?#].*)?$', ignoreCase ? 'i' : '');
       route.callback = callback;
+      route.expression = originalRouteExp;
+      route.method = method.toLowerCase();
       routes[method].push(route);
     };
   });
